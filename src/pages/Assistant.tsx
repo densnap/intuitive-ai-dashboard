@@ -25,6 +25,10 @@ interface Chat {
 }
 
 const Assistant = () => {
+    const rawUsername = localStorage.getItem("username") || "User";
+const firstName = rawUsername.split(".")[0];
+const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
   const navigate = useNavigate();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -76,29 +80,71 @@ const Assistant = () => {
     setIsTyping(true);
     setShowSuggestedQueries(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "I'm here to help you with any questions or tasks you might have. Whether you need assistance with writing, analysis, problem-solving, or creative projects, I'm ready to provide thoughtful and helpful responses.",
-        sender: 'assistant',
-        timestamp: new Date()
-      };
+  //   // Simulate AI response
+  //   setTimeout(() => {
+  //     const assistantMessage: Message = {
+  //       id: (Date.now() + 1).toString(),
+  //       content: "I'm here to help you with any questions or tasks you might have. Whether you need assistance with writing, analysis, problem-solving, or creative projects, I'm ready to provide thoughtful and helpful responses.",
+  //       sender: 'assistant',
+  //       timestamp: new Date()
+  //     };
 
-      setChats(prev => prev.map(chat => 
-        chat.id === currentChatId 
-          ? { 
-              ...chat, 
-              messages: [...chat.messages, assistantMessage],
-              lastMessage: assistantMessage.content.substring(0, 50) + "...",
-              title: userMessage.content.substring(0, 30) + "..."
-            }
-          : chat
-      ));
-      setIsTyping(false);
-    }, 1500);
-  };
+  //     setChats(prev => prev.map(chat => 
+  //       chat.id === currentChatId 
+  //         ? { 
+  //             ...chat, 
+  //             messages: [...chat.messages, assistantMessage],
+  //             lastMessage: assistantMessage.content.substring(0, 50) + "...",
+  //             title: userMessage.content.substring(0, 30) + "..."
+  //           }
+  //         : chat
+  //     ));
+  //     setIsTyping(false);
+  //   }, 1500);
+  // };
 
+   try {
+    const username = localStorage.getItem("username");
+    // Send question to backend
+    const response = await fetch("http://127.0.0.1:9100/api/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, query: userMessage.content }),
+    });
+    const result = await response.json();
+
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      content: result.success ? result.answer : "Sorry, I can't assist with that.",
+      sender: 'assistant',
+      timestamp: new Date()
+    };
+
+    setChats(prev => prev.map(chat => 
+      chat.id === currentChatId 
+        ? { 
+            ...chat, 
+            messages: [...chat.messages, assistantMessage],
+            lastMessage: assistantMessage.content.substring(0, 50) + "...",
+            title: userMessage.content.substring(0, 30) + "..."
+          }
+        : chat
+    ));
+  } catch (error) {
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      content: "Sorry, I can't assist with that.",
+      sender: 'assistant',
+      timestamp: new Date()
+    };
+    setChats(prev => prev.map(chat => 
+      chat.id === currentChatId 
+        ? { ...chat, messages: [...chat.messages, assistantMessage] }
+        : chat
+    ));
+  }
+  setIsTyping(false);
+};
   const handleNewChat = () => {
     const newChat: Chat = {
       id: Date.now().toString(),
@@ -257,7 +303,7 @@ const Assistant = () => {
               </Button>
               
               <div className="flex items-center space-x-3">
-                <div className="text-sm font-medium text-gray-900">ChatGPT 4o</div>
+                <div className="text-sm font-medium text-gray-900">Wheely</div>
               </div>
             </div>
             
@@ -325,7 +371,7 @@ const Assistant = () => {
                 </div>
                 
                 <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">
-                  Good Afternoon, Jason
+                  Good Afternoon, {displayName}
                 </h1>
                 <p className="text-xl text-gray-600 mb-12 text-center">
                   What's on <span className="text-purple-600">your mind?</span>

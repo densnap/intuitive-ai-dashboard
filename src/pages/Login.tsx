@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Bot, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -19,7 +20,7 @@ const Login = () => {
     role: ""
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.username || !formData.password || !formData.role) {
       toast({
@@ -29,19 +30,41 @@ const Login = () => {
       });
       return;
     }
+   try {
+      const response = await fetch("http://127.0.0.1:9100/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const result = await response.json();
 
-    toast({
-      title: "Welcome back!",
-      description: "Logging you in..."
-    });
-
-    setTimeout(() => {
-      navigate('/assistant');
-    }, 1000);
+      if (result.success) {
+  localStorage.setItem("username", formData.username); // Save username
+  toast({
+    title: "Welcome back!",
+    description: "Logging you in..."
+  });
+  setTimeout(() => {
+    navigate('/assistant');
+  }, 1000);
+} else {
+        toast({
+          title: "Invalid Credentials",
+          description: result.message || "Username, password, or role is incorrect.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: "Could not connect to server.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
@@ -109,8 +132,7 @@ const Login = () => {
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="dealer">Dealer</SelectItem>
                     <SelectItem value="sales">Sales</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="support">Support</SelectItem>
+
                   </SelectContent>
                 </Select>
               </div>
