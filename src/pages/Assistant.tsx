@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Bot, Send, Menu, X, Plus, Search, MoreHorizontal, User, Settings, LogOut, MessageSquare, Paperclip, Mic } from "lucide-react";
+import { Bot, Send, Menu, X, Plus, Search, MoreHorizontal, User, Settings, LogOut, MessageSquare, Paperclip, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
@@ -33,21 +33,15 @@ const Assistant = () => {
   const [currentChatId, setCurrentChatId] = useState("1");
   const [isTyping, setIsTyping] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [inputFocused, setInputFocused] = useState(false);
   
   const [chats, setChats] = useState<Chat[]>([
     {
       id: "1",
-      title: "Welcome Chat",
-      lastMessage: "Hello! How can I help you today?",
+      title: "New Thread",
+      lastMessage: "",
       timestamp: new Date(),
-      messages: [
-        {
-          id: "1",
-          content: "Hello! How can I help you today?",
-          sender: 'assistant',
-          timestamp: new Date()
-        }
-      ]
+      messages: []
     }
   ]);
 
@@ -56,6 +50,9 @@ const Assistant = () => {
     chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const hasMessages = currentChat?.messages && currentChat.messages.length > 0;
+  const showGreeting = !hasMessages && !inputFocused && !currentInput.trim();
 
   const handleSendMessage = async () => {
     if (!currentInput.trim()) return;
@@ -75,6 +72,7 @@ const Assistant = () => {
     ));
 
     setCurrentInput("");
+    setInputFocused(false);
     setIsTyping(true);
 
     // Simulate AI response
@@ -91,7 +89,8 @@ const Assistant = () => {
           ? { 
               ...chat, 
               messages: [...chat.messages, assistantMessage],
-              lastMessage: assistantMessage.content.substring(0, 50) + "..."
+              lastMessage: assistantMessage.content.substring(0, 50) + "...",
+              title: userMessage.content.substring(0, 30) + "..."
             }
           : chat
       ));
@@ -102,7 +101,7 @@ const Assistant = () => {
   const handleNewChat = () => {
     const newChat: Chat = {
       id: Date.now().toString(),
-      title: `New Chat ${chats.length + 1}`,
+      title: "New Thread",
       lastMessage: "",
       timestamp: new Date(),
       messages: []
@@ -110,9 +109,11 @@ const Assistant = () => {
     
     setChats(prev => [newChat, ...prev]);
     setCurrentChatId(newChat.id);
+    setInputFocused(false);
+    setCurrentInput("");
     
     toast({
-      title: "New Chat Created",
+      title: "New Thread Created",
       description: "Start a fresh conversation"
     });
   };
@@ -124,7 +125,7 @@ const Assistant = () => {
     }
     
     toast({
-      title: "Chat Deleted",
+      title: "Thread Deleted",
       description: "The conversation has been removed"
     });
   };
@@ -137,7 +138,17 @@ const Assistant = () => {
     navigate('/login');
   };
 
-  const hasMessages = currentChat?.messages && currentChat.messages.length > 0;
+  const handleSuggestedQuery = (query: string) => {
+    setCurrentInput(query);
+    setInputFocused(true);
+  };
+
+  const suggestedQueries = [
+    { text: "Write a to-do list for a personal project", icon: "👤" },
+    { text: "Generate an email to reply to a job offer", icon: "📧" },
+    { text: "Summarize this article in one paragraph", icon: "📋" },
+    { text: "How does AI work in a technical capacity", icon: "⚙️" }
+  ];
 
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
@@ -200,13 +211,13 @@ const Assistant = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="bg-white border-gray-200 shadow-lg">
                       <DropdownMenuItem className="text-gray-700 hover:bg-gray-50">
-                        Rename Chat
+                        Rename Thread
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         className="text-red-600 hover:bg-red-50"
                         onClick={() => handleDeleteChat(chat.id)}
                       >
-                        Delete Chat
+                        Delete Thread
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -218,9 +229,9 @@ const Assistant = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col bg-white">
+      <div className="flex-1 flex flex-col bg-white relative">
         {/* Header */}
-        <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+        <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 relative z-10">
           <div className="flex items-center space-x-4">
             <Button 
               variant="ghost" 
@@ -287,73 +298,29 @@ const Assistant = () => {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {!hasMessages ? (
-            // Welcome State
-            <div className="flex-1 flex flex-col items-center justify-center p-8">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-8">
-                <Bot className="h-8 w-8 text-white" />
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* Greeting Section */}
+          {showGreeting && (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 transition-all duration-500 ease-in-out">
+              {/* Floating AI Orb */}
+              <div className="relative mb-8">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                  <Sparkles className="h-10 w-10 text-white" />
+                </div>
+                <div className="absolute -inset-4 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-xl animate-pulse"></div>
               </div>
               
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">
                 Good Afternoon, Jason
               </h1>
-              <p className="text-xl text-gray-600 mb-12">
+              <p className="text-xl text-gray-600 mb-12 text-center">
                 What's on <span className="text-purple-600">your mind?</span>
               </p>
-              
-              <div className="w-full max-w-3xl mb-8">
-                <div className="relative">
-                  <Input
-                    placeholder="Ask AI a question or make a request..."
-                    value={currentInput}
-                    onChange={(e) => setCurrentInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="w-full h-14 pl-4 pr-16 bg-gray-50 border-gray-200 rounded-2xl text-gray-700 placeholder:text-gray-500 focus:bg-white focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!currentInput.trim()}
-                      className="h-8 w-8 p-0 bg-black hover:bg-gray-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="text-xs text-gray-500 text-center max-w-2xl">
-                GET STARTED WITH AN EXAMPLE BELOW
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 max-w-4xl w-full">
-                {[
-                  { title: "Write a to-do list for a personal project", icon: "📝" },
-                  { title: "Generate an email to reply to a job offer", icon: "📧" },
-                  { title: "Summarize this article in one paragraph", icon: "📄" },
-                  { title: "How does AI work in a technical capacity", icon: "🤖" }
-                ].map((example, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentInput(example.title)}
-                    className="p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all text-left group"
-                  >
-                    <div className="text-2xl mb-2">{example.icon}</div>
-                    <p className="text-sm text-gray-700 group-hover:text-gray-900">{example.title}</p>
-                  </button>
-                ))}
-              </div>
             </div>
-          ) : (
-            // Chat Messages
+          )}
+
+          {/* Chat Messages */}
+          {(hasMessages || (!showGreeting && (inputFocused || currentInput.trim()))) && (
             <ScrollArea className="flex-1 p-6">
               <div className="max-w-4xl mx-auto space-y-6">
                 {currentChat?.messages.map((message) => (
@@ -377,7 +344,7 @@ const Assistant = () => {
                       <div className={`rounded-2xl p-4 ${
                         message.sender === 'user'
                           ? 'bg-gray-100 text-gray-900'
-                          : 'bg-white text-gray-900'
+                          : 'bg-white text-gray-900 border border-gray-100'
                       }`}>
                         <p className="text-sm leading-relaxed">{message.content}</p>
                         <p className="text-xs text-gray-500 mt-2">
@@ -394,7 +361,7 @@ const Assistant = () => {
                       <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
                         <Bot className="h-4 w-4 text-white" />
                       </div>
-                      <div className="bg-white rounded-2xl p-4">
+                      <div className="bg-white rounded-2xl p-4 border border-gray-100">
                         <div className="flex space-x-1">
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                           <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
@@ -407,46 +374,59 @@ const Assistant = () => {
               </div>
             </ScrollArea>
           )}
-          
-          {/* Input Area - Always visible */}
-          {hasMessages && (
-            <div className="border-t border-gray-200 p-6 bg-gray-50">
-              <div className="max-w-4xl mx-auto">
-                <div className="relative">
-                  <Input
-                    placeholder="Ask AI a question or make a request..."
-                    value={currentInput}
-                    onChange={(e) => setCurrentInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="w-full h-14 pl-4 pr-20 bg-white border-gray-200 rounded-2xl text-gray-700 placeholder:text-gray-500 focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                    >
-                      <Mic className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!currentInput.trim() || isTyping}
-                      className="h-8 w-8 p-0 bg-black hover:bg-gray-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+        </div>
+
+        {/* Input Area - Always at bottom */}
+        <div className={`${showGreeting ? 'absolute bottom-0 left-0 right-0' : ''} border-t border-gray-200 p-6 bg-white z-10`}>
+          <div className="max-w-4xl mx-auto">
+            <div className="relative">
+              <Input
+                placeholder="Ask AI a question or make a request..."
+                value={currentInput}
+                onChange={(e) => setCurrentInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onFocus={() => setInputFocused(true)}
+                className="w-full h-14 pl-4 pr-20 bg-white border-gray-300 rounded-2xl text-gray-700 placeholder:text-gray-500 focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!currentInput.trim() || isTyping}
+                  className="h-8 w-8 p-0 bg-black hover:bg-gray-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          )}
+
+            {/* Suggested Queries */}
+            {showGreeting && (
+              <div className="mt-8">
+                <div className="text-xs text-gray-500 text-center mb-4 uppercase tracking-wide">
+                  Get started with an example below
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {suggestedQueries.map((query, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSuggestedQuery(query.text)}
+                      className="p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all text-left group"
+                    >
+                      <div className="text-2xl mb-2">{query.icon}</div>
+                      <p className="text-sm text-gray-700 group-hover:text-gray-900">{query.text}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
