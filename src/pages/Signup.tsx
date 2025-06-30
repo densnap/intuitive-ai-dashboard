@@ -1,12 +1,12 @@
 
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Eye, EyeOff, Mail, Shield, User } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Bot, Eye, EyeOff, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Signup = () => {
@@ -26,34 +26,34 @@ const Signup = () => {
     e.preventDefault();
     if (!formData.email) {
       toast({
-        title: "Error",
+        title: "Email Required",
         description: "Please enter your email address",
         variant: "destructive"
       });
       return;
     }
-    
+
     toast({
-      title: "OTP Sent",
-      description: "Please check your email for the verification code"
+      title: "Verification Code Sent",
+      description: "Please check your email for the OTP"
     });
     setCurrentStep(2);
   };
 
-  const handleOtpSubmit = (e: React.FormEvent) => {
+  const handleOTPSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.otp) {
       toast({
-        title: "Error",
-        description: "Please enter the OTP code",
+        title: "OTP Required",
+        description: "Please enter the verification code",
         variant: "destructive"
       });
       return;
     }
-    
+
     toast({
-      title: "Email Verified",
-      description: "Please complete your profile"
+      title: "Email Verified!",
+      description: "Please complete your account setup"
     });
     setCurrentStep(3);
   };
@@ -62,205 +62,239 @@ const Signup = () => {
     e.preventDefault();
     if (!formData.username || !formData.password || !formData.role) {
       toast({
-        title: "Error",
+        title: "Missing Information",
         description: "Please fill in all fields",
         variant: "destructive"
       });
       return;
     }
-    
+
     toast({
-      title: "Account Created",
-      description: "Welcome to AI Assistant!"
+      title: "Account Created!",
+      description: "Welcome to the AI Assistant"
     });
-    navigate('/assistant');
+
+    setTimeout(() => {
+      navigate('/assistant');
+    }, 1000);
   };
 
-  const renderStep = () => {
+  const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
-          <>
-            <CardHeader className="text-center pb-8">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-600">
-                <Mail className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-white">Email Verification</CardTitle>
-              <CardDescription className="text-slate-400">
-                Enter your email to get started
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <form onSubmit={handleEmailSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-300">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500"
-                  />
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-all duration-200"
-                >
-                  Send Verification Code
-                </Button>
-              </form>
-            </CardContent>
-          </>
+          <form onSubmit={handleEmailSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full h-12 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium rounded-lg"
+            >
+              Send Verification Code
+            </Button>
+          </form>
         );
-        
+
       case 2:
         return (
-          <>
-            <CardHeader className="text-center pb-8">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-600">
-                <Shield className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-white">Enter OTP</CardTitle>
-              <CardDescription className="text-slate-400">
-                We sent a code to {formData.email}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <form onSubmit={handleOtpSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="otp" className="text-slate-300">Verification Code</Label>
-                  <Input
-                    id="otp"
-                    type="text"
-                    placeholder="Enter 6-digit code"
-                    value={formData.otp}
-                    onChange={(e) => setFormData({...formData, otp: e.target.value})}
-                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500 text-center text-lg tracking-widest"
-                    maxLength={6}
-                  />
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-all duration-200"
-                >
-                  Verify Code
-                </Button>
-                
-                <Button 
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setCurrentStep(1)}
-                  className="w-full text-slate-400 hover:text-slate-300"
-                >
-                  Back to Email
-                </Button>
-              </form>
-            </CardContent>
-          </>
+          <form onSubmit={handleOTPSubmit} className="space-y-6">
+            <div className="text-center mb-4">
+              <p className="text-sm text-gray-600">
+                We've sent a verification code to<br />
+                <span className="font-medium text-gray-900">{formData.email}</span>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="otp" className="text-sm font-medium text-gray-700">
+                Verification Code
+              </Label>
+              <Input
+                id="otp"
+                type="text"
+                placeholder="Enter 6-digit code"
+                value={formData.otp}
+                onChange={(e) => setFormData({...formData, otp: e.target.value})}
+                className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500 text-center text-lg tracking-widest"
+                maxLength={6}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full h-12 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium rounded-lg"
+            >
+              Verify Code
+            </Button>
+            <div className="text-center">
+              <button
+                type="button"
+                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                onClick={() => setCurrentStep(1)}
+              >
+                Change Email
+              </button>
+            </div>
+          </form>
         );
-        
+
       case 3:
         return (
-          <>
-            <CardHeader className="text-center pb-8">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-purple-600">
-                <User className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="text-2xl font-bold text-white">Complete Setup</CardTitle>
-              <CardDescription className="text-slate-400">
-                Create your account credentials
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <form onSubmit={handleFinalSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="username" className="text-slate-300">Username</Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="Choose a username"
-                    value={formData.username}
-                    onChange={(e) => setFormData({...formData, username: e.target.value})}
-                    className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-300">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Create a password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 focus:border-blue-500 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="text-slate-300">Role</Label>
-                  <Select onValueChange={(value) => setFormData({...formData, role: value})}>
-                    <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-700 border-slate-600">
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="dealer">Dealer</SelectItem>
-                      <SelectItem value="sales">Sales</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="support">Support</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition-all duration-200"
+          <form onSubmit={handleFinalSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+                Username
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Choose a username"
+                value={formData.username}
+                onChange={(e) => setFormData({...formData, username: e.target.value})}
+                className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Password
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500 pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                  onClick={() => setShowPassword(!showPassword)}
                 >
-                  Create Account
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
-              </form>
-            </CardContent>
-          </>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-sm font-medium text-gray-700">
+                Role
+              </Label>
+              <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
+                <SelectTrigger className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500">
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="dealer">Dealer</SelectItem>
+                  <SelectItem value="sales">Sales</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="support">Support</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-12 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium rounded-lg"
+            >
+              Create Account
+            </Button>
+          </form>
         );
-        
+
       default:
         return null;
     }
   };
 
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case 1:
+        return "Email Verification";
+      case 2:
+        return "Enter Code";
+      case 3:
+        return "Account Setup";
+      default:
+        return "Sign Up";
+    }
+  };
+
+  const getStepDescription = () => {
+    switch (currentStep) {
+      case 1:
+        return "Enter your email to get started";
+      case 2:
+        return "Check your email for the verification code";
+      case 3:
+        return "Complete your account information";
+      default:
+        return "Create your account";
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-        {renderStep()}
-        
-        <div className="px-6 pb-6">
-          <div className="text-center text-slate-400 text-sm">
-            Already have an account?{" "}
-            <Link 
-              to="/login" 
-              className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-            >
-              Sign in
-            </Link>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+            {currentStep === 3 ? (
+              <CheckCircle className="h-8 w-8 text-white" />
+            ) : (
+              <Bot className="h-8 w-8 text-white" />
+            )}
           </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
+          <p className="text-gray-600">Join the AI Assistant</p>
         </div>
-      </Card>
+
+        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+          <CardHeader className="text-center pb-6">
+            <CardTitle className="text-xl">{getStepTitle()}</CardTitle>
+            <CardDescription>{getStepDescription()}</CardDescription>
+            
+            {/* Step indicator */}
+            <div className="flex justify-center space-x-2 mt-4">
+              {[1, 2, 3].map((step) => (
+                <div
+                  key={step}
+                  className={`w-2 h-2 rounded-full ${
+                    step <= currentStep ? 'bg-purple-500' : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {renderStepContent()}
+            
+            <div className="text-center text-sm text-gray-600 mt-6">
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="text-purple-600 hover:text-purple-700 font-medium"
+              >
+                Sign in
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
