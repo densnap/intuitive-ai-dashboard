@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ interface Message {
   content: string;
   sender: 'user' | 'assistant';
   timestamp: Date;
+  isTyping?: boolean;
 }
 
 interface Chat {
@@ -34,6 +35,7 @@ const Assistant = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const [showSuggestedQueries, setShowSuggestedQueries] = useState(false);
+  const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
   
   const [chats, setChats] = useState<Chat[]>([
     {
@@ -53,6 +55,74 @@ const Assistant = () => {
 
   const hasMessages = currentChat?.messages && currentChat.messages.length > 0;
   const showGreeting = !hasMessages && !inputFocused && !currentInput.trim();
+
+  // Typewriter effect hook
+  const useTypewriter = (text: string, speed: number = 50) => {
+    const [displayedText, setDisplayedText] = useState("");
+    const [isComplete, setIsComplete] = useState(false);
+
+    useEffect(() => {
+      if (!text) return;
+      
+      setDisplayedText("");
+      setIsComplete(false);
+      let index = 0;
+      
+      const timer = setInterval(() => {
+        if (index < text.length) {
+          setDisplayedText(text.substring(0, index + 1));
+          index++;
+        } else {
+          setIsComplete(true);
+          clearInterval(timer);
+        }
+      }, speed);
+
+      return () => clearInterval(timer);
+    }, [text, speed]);
+
+    return { displayedText, isComplete };
+  };
+
+  const TypewriterMessage = ({ message }: { message: Message }) => {
+    const { displayedText, isComplete } = useTypewriter(
+      message.isTyping ? message.content : "", 
+      30
+    );
+
+    useEffect(() => {
+      if (isComplete && message.isTyping) {
+        // Mark message as complete
+        setChats(prev => prev.map(chat => 
+          chat.id === currentChatId 
+            ? { 
+                ...chat, 
+                messages: chat.messages.map(msg => 
+                  msg.id === message.id 
+                    ? { ...msg, isTyping: false }
+                    : msg
+                )
+              }
+            : chat
+        ));
+        setTypingMessageId(null);
+      }
+    }, [isComplete, message.isTyping, message.id]);
+
+    return (
+      <div className="bg-white text-gray-900 border border-gray-100 rounded-2xl p-4">
+        <p className="text-sm leading-relaxed">
+          {message.isTyping ? displayedText : message.content}
+          {message.isTyping && !isComplete && (
+            <span className="inline-block w-2 h-5 bg-gray-900 ml-1 animate-pulse"></span>
+          )}
+        </p>
+        <p className="text-xs text-gray-500 mt-2">
+          {message.timestamp.toLocaleTimeString()}
+        </p>
+      </div>
+    );
+  };
 
   const handleSendMessage = async () => {
     if (!currentInput.trim()) return;
@@ -76,13 +146,15 @@ const Assistant = () => {
     setIsTyping(true);
     setShowSuggestedQueries(true);
 
-    // Simulate AI response
+    // Simulate AI response with typing animation
     setTimeout(() => {
+      const assistantMessageId = (Date.now() + 1).toString();
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "I'm here to help you with any questions or tasks you might have. Whether you need assistance with writing, analysis, problem-solving, or creative projects, I'm ready to provide thoughtful and helpful responses.",
+        id: assistantMessageId,
+        content: "I'm here to help you with any questions or tasks you might have. Whether you need assistance with writing, analysis, problem-solving, or creative projects, I'm ready to provide thoughtful and helpful responses tailored to your specific needs.",
         sender: 'assistant',
-        timestamp: new Date()
+        timestamp: new Date(),
+        isTyping: true
       };
 
       setChats(prev => prev.map(chat => 
@@ -95,8 +167,10 @@ const Assistant = () => {
             }
           : chat
       ));
+      
+      setTypingMessageId(assistantMessageId);
       setIsTyping(false);
-    }, 1500);
+    }, 1000);
   };
 
   const handleNewChat = () => {
@@ -405,16 +479,16 @@ const Assistant = () => {
                             )}
                           </div>
                           
-                          <div className={`rounded-2xl p-4 ${
-                            message.sender === 'user'
-                              ? 'bg-gray-100 text-gray-900'
-                              : 'bg-white text-gray-900 border border-gray-100'
-                          }`}>
-                            <p className="text-sm leading-relaxed">{message.content}</p>
-                            <p className="text-xs text-gray-500 mt-2">
-                              {message.timestamp.toLocaleTimeString()}
-                            </p>
-                          </div>
+                          {message.sender === 'assistant' ? (
+                            <TypewriterMessage message={message} />
+                          ) : (
+                            <div className="bg-gray-100 text-gray-900 rounded-2xl p-4">
+                              <p className="text-sm leading-relaxed">{message.content}</p>
+                              <p className="text-xs text-gray-500 mt-2">
+                                {message.timestamp.toLocaleTimeString()}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
