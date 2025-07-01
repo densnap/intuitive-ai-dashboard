@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Bot, Send, Menu, X, Plus, Search, MoreHorizontal, User, Settings, LogOut, MessageSquare, Paperclip, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from 'react-markdown';
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
   id: string;
@@ -25,9 +27,19 @@ interface Chat {
 }
 
 const Assistant = () => {
-    const rawUsername = localStorage.getItem("username") || "User";
-const firstName = rawUsername.split(".")[0];
-const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
+ // tracks if first prompt sent
+const [showRightPanel, setShowRightPanel] = useState(false);
+
+   const [animatedContent, setAnimatedContent] = useState('');
+   const [animatingMessageId, setAnimatingMessageId] = useState<string | null>(null);
+  const rawUsername = localStorage.getItem("username") || "User";
+  const firstName = rawUsername.split(".")[0];
+  const lastName = rawUsername.split(".")[1];
+const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+const initials = (firstName[0] || "").toUpperCase() + (lastName[0] || "").toUpperCase(); 
+  const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -39,6 +51,23 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
   const [inputFocused, setInputFocused] = useState(false);
   const [showSuggestedQueries, setShowSuggestedQueries] = useState(false);
   
+  function animateMarkdownMessage(fullText: string, messageId: string) {
+  setAnimatedContent('');
+  setAnimatingMessageId(messageId);
+
+  let i = 0;
+  const chunkSize = 4; // Reveal 4 characters at a time for fluidity
+  const interval = setInterval(() => {
+    setAnimatedContent(fullText.slice(0, i + chunkSize));
+    i += chunkSize;
+    if (i >= fullText.length) {
+      clearInterval(interval);
+      setAnimatingMessageId(null);
+      setAnimatedContent(''); // Reset after animation is done
+    }
+  }, 16); // 16ms for ~60fps, tweak for speed
+}
+
   const [chats, setChats] = useState<Chat[]>([
     {
       id: "1",
@@ -106,7 +135,7 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
    try {
     const username = localStorage.getItem("username");
     // Send question to backend
-    const response = await fetch("http://127.0.0.1:9100/api/query", {
+    const response = await fetch("http://127.0.0.1:9001/api/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, query: userMessage.content }),
@@ -119,7 +148,7 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
       sender: 'assistant',
       timestamp: new Date()
     };
-
+   animateMarkdownMessage(assistantMessage.content, assistantMessage.id);
     setChats(prev => prev.map(chat => 
       chat.id === currentChatId 
         ? { 
@@ -189,23 +218,23 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
   const handleSuggestedQuery = (query: string) => {
     setCurrentInput(query);
     setInputFocused(true);
+     setShowRightPanel(true);
   };
 
   const suggestedQueries = [
-    { text: "Write a to-do list for a personal project", icon: "👤" },
-    { text: "Generate an email to reply to a job offer", icon: "📧" },
-    { text: "Summarize this article in one paragraph", icon: "📋" },
-    { text: "How does AI work in a technical capacity", icon: "⚙️" }
+    { text: "List all claims I’ve raised along with their statuses", icon: "👤" },
+    { text: "Give me specification about product UrbanBias", icon: "📧" },
+    { text: "What is the available quantity of 100/45R29 73H in Mysore", icon: "📋" },
+    { text: "Show me my sales performance summary.", icon: "⚙️" }
   ];
-
-  const rightSideSuggestions = [
-    "Create a marketing strategy",
-    "Explain quantum computing",
-    "Write a business proposal",
-    "Analyze market trends",
-    "Generate code snippets",
-    "Plan a project timeline"
-  ];
+  // const rightSideSuggestions = [
+  //   "List all claims I’ve raised along with their statuses",
+  //   "Give me specification about product UrbanBias",
+  //   "What is the available quantity of 100/45R29 73H in Mysore",
+  //   "Show me my sales performance summary.",
+  //   "Show me similiar products to ",
+  
+  // ];
 
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
@@ -303,36 +332,33 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
               </Button>
               
               <div className="flex items-center space-x-3">
-                <div className="text-sm font-medium text-gray-900">Wheely</div>
+                <div className="flex items-center space-x-2 text-lg italic font-medium text-gray-900">
+                <img src="public\logooo.svg" alt="Wheely Logo" className="w-25 h-8" />
+                 <p className="font-bold">Wheely</p>
+              </div>
+
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg px-3 h-10"
-              >
-                <User className="h-4 w-4 mr-2" />
-                Invite
-              </Button>
+
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-gray-100">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-gray-200 text-gray-700 text-sm font-medium">
-                        JD
+                        {initials}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56 bg-white border-gray-200 shadow-lg" align="end">
                   <div className="px-4 py-3">
-                    <p className="text-sm font-medium text-gray-900">Jason</p>
-                    <p className="text-xs text-gray-500">jason@example.com</p>
+                    <p className="text-sm font-medium text-gray-900">{firstName}</p>
+                    <p className="text-xs text-gray-500"></p>
                     <Badge variant="secondary" className="mt-1 bg-purple-100 text-purple-700 text-xs">
-                      Admin
+                     Dealer
                     </Badge>
                   </div>
                   <DropdownMenuSeparator className="bg-gray-200" />
@@ -361,6 +387,7 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
           <div className="flex-1 flex flex-col overflow-hidden relative">
             {/* Greeting Section - Centered */}
             {showGreeting && (
+              
               <div className="flex-1 flex flex-col items-center justify-center px-8 transition-all duration-500 ease-in-out">
                 {/* Floating AI Orb */}
                 <div className="relative mb-8">
@@ -370,7 +397,8 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
                   <div className="absolute -inset-4 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-xl animate-pulse"></div>
                 </div>
                 
-                <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">
+                
+                <h1 className="text-4xl font-bold text-gray-900 mb-2 font-inter text-center">
                   Good Afternoon, {displayName}
                 </h1>
                 <p className="text-xl text-gray-600 mb-12 text-center">
@@ -385,17 +413,14 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
                       value={currentInput}
                       onChange={(e) => setCurrentInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      onFocus={() => setInputFocused(true)}
+                      onFocus={() => {
+                        setInputFocused(true);
+                        setShowRightPanel(true);
+                      }}
                       className="w-full h-14 pl-4 pr-20 bg-white border-gray-300 rounded-2xl text-gray-700 placeholder:text-gray-500 focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                      </Button>
+                  
                       <Button
                         onClick={handleSendMessage}
                         disabled={!currentInput.trim() || isTyping}
@@ -442,25 +467,52 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                             message.sender === 'user' 
                               ? 'bg-gray-200 text-gray-700' 
-                              : 'bg-gradient-to-br from-purple-500 to-pink-500 text-white'
+                              : 'bg-gradient-to-br text-white'
                           }`}>
                             {message.sender === 'user' ? (
                               <User className="h-4 w-4" />
                             ) : (
-                              <Bot className="h-4 w-4" />
+                              <img src="public\logooo.svg" alt="Wheely Logo" className="w-6 h-6 rounded-full" />
                             )}
                           </div>
                           
                           <div className={`rounded-2xl p-4 ${
-                            message.sender === 'user'
-                              ? 'bg-gray-100 text-gray-900'
-                              : 'bg-white text-gray-900 border border-gray-100'
-                          }`}>
-                            <p className="text-sm leading-relaxed">{message.content}</p>
-                            <p className="text-xs text-gray-500 mt-2">
-                              {message.timestamp.toLocaleTimeString()}
-                            </p>
-                          </div>
+                           message.sender === 'user'
+                            ? 'bg-gray-100 text-gray-900'
+                            : 'bg-white text-gray-900 border border-gray-100'
+                        }`}>
+                          {message.sender === 'assistant' && message.id === animatingMessageId ?  (
+                            <ReactMarkdown
+                              components={{
+                                p: ({node, ...props}) => <p className="text-sm leading-relaxed" {...props} />,
+                                ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-2" {...props} />,
+                                ol: ({node, ...props}) => <ol className="list-decimal pl-6 mb-2" {...props} />,
+                                li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                                strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                                em: ({node, ...props}) => <em className="italic" {...props} />,
+                                code: ({node, ...props}) => <code className="bg-gray-100 px-1 rounded" {...props} />,
+                              }}
+                            >
+                              {animatedContent}
+                            </ReactMarkdown>
+                          ) :  message.sender === 'assistant' ?(
+                            <ReactMarkdown
+                            components={{
+                              p: ({node, ...props}) => <p className="text-sm leading-relaxed" {...props} />,
+                              ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-2" {...props} />,
+                              ol: ({node, ...props}) => <ol className="list-decimal pl-6 mb-2" {...props} />,
+                              li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                              strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                              em: ({node, ...props}) => <em className="italic" {...props} />,
+                              code: ({node, ...props}) => <code className="bg-gray-100 px-1 rounded" {...props} />,
+                            }}
+                          >
+                        {message.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <p className="text-sm leading-relaxed">{message.content}</p>
+                    )}
+                        </div>
                         </div>
                       </div>
                     ))}
@@ -489,20 +541,14 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
                   <div className="max-w-4xl mx-auto">
                     <div className="relative">
                       <Input
-                        placeholder="Ask AI a question or make a request..."
+                        placeholder="Ask Wheely a question or make a request..."
                         value={currentInput}
                         onChange={(e) => setCurrentInput(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                         className="w-full h-14 pl-4 pr-20 bg-white border-gray-300 rounded-2xl text-gray-700 placeholder:text-gray-500 focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                        >
-                          <Paperclip className="h-4 w-4" />
-                        </Button>
+                
                         <Button
                           onClick={handleSendMessage}
                           disabled={!currentInput.trim() || isTyping}
@@ -520,22 +566,28 @@ const displayName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
         </div>
 
         {/* Right Sidebar - Suggested Queries */}
-        {showSuggestedQueries && (
-          <div className="w-80 bg-gray-50 border-l border-gray-200 p-6 overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Suggested Prompts</h3>
-            <div className="space-y-3">
-              {rightSideSuggestions.map((suggestion, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSuggestedQuery(suggestion)}
-                  className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all group"
-                >
-                  <p className="text-sm text-gray-700 group-hover:text-purple-700">{suggestion}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+          {showRightPanel && (
+  <div className="w-80 bg-gray-50 border-l border-gray-200 flex flex-col overflow-y-auto p-6">
+    <h3 className="text-lg font-semibold text-gray-900 mb-4">Suggested Prompts</h3>
+
+    <div className="flex-1">
+      <div className="grid grid-cols-1 gap-4">
+        {suggestedQueries.map((query, index) => (
+          <button
+            key={index}
+            onClick={() => handleSuggestedQuery(query.text)}
+            className="p-4 bg-white border border-gray-200 rounded-xl hover:border-gray-300 hover:shadow-sm transition-all text-left group"
+          >
+            <div className="text-2xl mb-2">{query.icon}</div>
+            <p className="text-sm text-gray-700 group-hover:text-gray-900">{query.text}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
+
+
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ const Login = () => {
       return;
     }
    try {
-      const response = await fetch("http://127.0.0.1:9100/api/login", {
+      const response = await fetch("http://127.0.0.1:9001/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -80,7 +80,7 @@ const Login = () => {
             <CardDescription>Enter your credentials to continue</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} autoComplete="off" className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-sm font-medium text-gray-700">
                   Username
@@ -88,8 +88,10 @@ const Login = () => {
                 <Input
                   id="username"
                   type="text"
+                  name="username"
                   placeholder="Enter your username"
                   value={formData.username}
+                    autoComplete="new-username"
                   onChange={(e) => setFormData({...formData, username: e.target.value})}
                   className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
                 />
@@ -102,9 +104,11 @@ const Login = () => {
                 <div className="relative">
                   <Input
                     id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={formData.password}
+                    autoComplete="new-password"  
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
                     className="h-12 border-gray-200 focus:border-purple-500 focus:ring-purple-500 pr-10"
                   />

@@ -200,8 +200,6 @@ const Signup = () => {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="dealer">Dealer</SelectItem>
                   <SelectItem value="sales">Sales</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="support">Support</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -247,7 +245,7 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br  flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
@@ -258,7 +256,7 @@ const Signup = () => {
             )}
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600">Join the AI Assistant</p>
+          <p className="text-gray-600">Join the Wheely Assistant</p>
         </div>
 
         <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">

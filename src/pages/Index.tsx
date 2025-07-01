@@ -15,15 +15,14 @@ const Index = () => {
           </div>
           
           <h1 className="text-6xl font-bold text-gray-900 mb-6 tracking-tight">
-            AI Assistant
+            Wheely Assistant
             <span className="text-purple-500 ml-2">
               <Sparkles className="inline h-12 w-12" />
             </span>
           </h1>
           
           <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Experience the future of intelligent conversation with our advanced AI assistant. 
-            Seamless, powerful, and designed for productivity.
+           An intelligent assistant built to simplify workflows, answer queries, and empower teams across sales, service, and inventory in the tyre manufacturing industry.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -53,24 +52,24 @@ const Index = () => {
             <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
               <MessageSquare className="h-6 w-6 text-purple-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Smart Conversations</h3>
-            <p className="text-gray-600">Engage in natural, intelligent conversations with advanced AI capabilities.</p>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">AI-Powered Query Support</h3>
+            <p className="text-gray-600">Ask natural questions about product availability, claim status, or sales. </p>
           </div>
 
           <div className="text-center p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-200">
             <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Users className="h-6 w-6 text-pink-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Team Collaboration</h3>
-            <p className="text-gray-600">Work together with your team in shared AI-powered workspaces.</p>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Role-Based Insights for Dealers & Sales</h3>
+            <p className="text-gray-600">Whether you're a dealer, sales rep, or admin — get the right data at the right time.</p>
           </div>
 
           <div className="text-center p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-200">
             <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Zap className="h-6 w-6 text-purple-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Lightning Fast</h3>
-            <p className="text-gray-600">Get instant responses and quick solutions to boost your productivity.</p>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Instant Insights. Always On Time.</h3>
+            <p className="text-gray-600">Get answers in under 2 seconds.Wheely responds fast — boosting your productivity.</p>
           </div>
         </div>
       </div>
