@@ -77,42 +77,27 @@ async def login(request: Request):
             "error": str(e)
         })
 
-# this is for dealer role based masking 
+
+# 💬 Query Endpoint (Dealer/Role-Based RAG)
 @app.post("/api/query")
 async def query(request: Request):
-    print("🚀 [DEBUG] /api/query endpoint hit")
+    data = await request.json()
+    username = data.get("username")
+    user_query = data.get("query")
+
+    print(f"✅ /api/query | User: {username} | Query: {user_query}")
+
+    # Set user context for RAG
+    user_session = get_user_session_by_username(username)
+    if not user_session:
+        return JSONResponse(status_code=401, content={"success": False, "message": "Unauthorized"})
+
+    global current_user
+    current_user = user_session
 
     try:
-        data = await request.json()
-        username = data.get("username")
-        user_query = data.get("query")
-
-        print(f"👤 [DEBUG] Incoming query from user: {username}")
-        print(f"💬 [DEBUG] User query: {user_query}")
-
-        # Step 1: Get user session
-        print("🔍 [DEBUG] Looking up user session...")
-        user_session = get_user_session_by_username(username)
-
-        if not user_session:
-            print(f"❌ [ERROR] No matching user found for username: {username}")
-            return JSONResponse(status_code=401, content={"success": False, "message": "Unauthorized"})
-
-        print(f"✅ [DEBUG] User session retrieved: {user_session.username}, Role: {user_session.role}, Dealer ID: {user_session.dealer_id}")
-
-        # Step 2: Set current_user globally for use in rag logic
-        global current_user
-        current_user = user_session
-
-        # Step 3: Process the query
-        print("🧠 [DEBUG] Passing query to process_user_query()...")
         answer = process_user_query(user_query, user_session)
-
-        print("📤 [DEBUG] Answer received from RAG pipeline or order placement logic.")
-        print(f"📝 [DEBUG] Final answer:\n{answer}")
-
         return {"success": True, "answer": answer}
-
     except Exception as e:
-        print(f"🔥 [ERROR] Exception occurred in /api/query: {e}")
+        print(f"❌ Query error: {e}")
         return JSONResponse(status_code=500, content={"success": False, "message": str(e)})

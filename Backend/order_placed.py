@@ -22,9 +22,9 @@ os.environ["password"] = "wheelychatbot"
 os.environ["host"] = "aws-0-ap-south-1.pooler.supabase.com"
 os.environ["port"] = "5432"
 os.environ["dbname"] = "postgres"
-
+ 
 load_dotenv()
-
+ 
 # --- Azure OpenAI Embedding Endpoint and Headers ---
 embedding_endpoint = os.getenv("AZURE_OPENAI_URL")
 embedding_headers = {
@@ -35,12 +35,12 @@ embedding_headers = {
     "x-project": os.getenv("AZURE_OPENAI_PROJECT"),
     'api-version': os.getenv("AZURE_OPENAI_API_VERSION")
 }
-
+ 
 # --- Supabase Client (for vector search) ---
 supabase_url = "https://ojbalezgbnwunzzoajum.supabase.co"
 supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qYmFsZXpnYm53dW56em9hanVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0OTk0MzMsImV4cCI6MjA2NTA3NTQzM30.20UaD3p7f1PHDCUhyEO4n3orWGqB-ku7pzBQLESXh4E"
 supabase = create_client(supabase_url, supabase_key)
-
+ 
 # --- Azure OpenAI Chat Endpoint and Headers ---
 chat_endpoint = "https://ai-api-dev.dentsu.com/openai/deployments/GPT35Turbo/chat/completions?api-version=2024-10-21"
 chat_headers  = {
@@ -51,15 +51,17 @@ chat_headers  = {
     "Ocp-Apim-Subscription-Key": "3c6489668e324e6e8123e94f41456484"
 }
 
-# Global user session
+
+
+
+
+
+
+########################################################################
+#########################  USER SESSION ################################
 current_user = None
-current_session_id = None  # Global session ID for this user session
-
-# Cache for fuzzy matching
-DEALER_CACHE = {}
-PRODUCT_CACHE = {}
-WAREHOUSE_CACHE = {}
-
+current_session_id = None 
+ 
 class UserSession:
     def __init__(self, user_id, username, role, dealer_id=None, dealer_name=None):
         self.user_id = user_id
@@ -85,96 +87,7 @@ class UserSession:
     def get_dealer_filter(self):
         """Returns dealer_id for filtering if user is a dealer"""
         return self.dealer_id if self.is_dealer() else None
-    
-CONVERSATION_HISTORY = deque(maxlen=10)
-
-class QuerySession:
-    def __init__(self, query, response, timestamp=None):
-        self.query = query
-        self.response = response
-        self.timestamp = timestamp or datetime.now().isoformat()
-
-def log_query_session(user_query, response):
-    session = QuerySession(user_query, response)
-    CONVERSATION_HISTORY.append(session)
-    print(f"DEBUG: Logged query session. History length: {len(CONVERSATION_HISTORY)}")
-
-def get_conversation_context(num_exchanges=5):
-    try:
-        result = supabase.table("conversation_logs") \
-            .select("user_query, ai_response") \
-            .eq("user_id", current_user.user_id) \
-            .order("query_timestamp", desc=True) \
-            .limit(num_exchanges) \
-            .execute()
  
-        rows = result.data if hasattr(result, 'data') else result.get('data', [])
-        if not rows:
-            return ""
- 
-        context = f"Last {num_exchanges} conversations from this user:\n"
-        for i, row in enumerate(reversed(rows), 1):
-            context += f"\nExchange {i}:\nUser: {row['user_query']}\nAssistant: {row['ai_response']}\n"
-        return context
- 
-    except Exception as e:
-        print("DEBUG: Failed to fetch context from Supabase:", e)
-        return ""
-    
-
-def is_follow_up_question(user_query):
-    follow_up_signals = [
-        'what about', 'and what', 'also show', 'more details', 'can you also',
-        'tell me more', 'how about', 'compare', 'difference between'
-    ]
-    return any(signal in user_query.lower() for signal in follow_up_signals)
-
-def enhance_query_with_context(user_query):
-    if not is_follow_up_question(user_query):
-        return user_query
- 
-    try:
-        result = supabase.table("conversation_logs") \
-            .select("user_query, ai_response") \
-            .eq("user_id", current_user.user_id) \
-            .order("query_timestamp", desc=True) \
-            .limit(1) \
-            .execute()
- 
-        rows = result.data if hasattr(result, 'data') else result.get('data', [])
-        if not rows:
-            return user_query
- 
-        last = rows[0]
-        return (
-            f"Previous context: {last['user_query']}\n"
-            f"Previous response: {last['ai_response']}\n\n"
-            f"Follow-up question: {user_query}\n\n"
-            f"Please answer the follow-up considering the previous context."
-        )
- 
-    except Exception as e:
-        print("DEBUG: Failed to enhance query with context:", e)
-        return user_query
-
-def save_to_supabase(user_query, response):
-    try:
-        log_data = {
-            'user_id': current_user.user_id,
-            'dealer_id': current_user.dealer_id,
-            'user_query': user_query,
-            'ai_response': response,
-            'session_id': current_session_id,
-            'query_timestamp': datetime.now().isoformat(),
-            'query_type': "followup" if is_follow_up_question(user_query) else "initial",
-            'metadata': {}  # Add any relevant metadata if needed
-        }
-        result = supabase.table("conversation_logs").insert(log_data).execute()
-        print(f"DEBUG: Supabase log result: {result}")
-    except Exception as e:
-        print(f"Error saving to Supabase: {e}")
-
-
 def authenticate_user(username, password):
     """
     Authenticate user and return UserSession object
@@ -211,13 +124,13 @@ def authenticate_user(username, password):
     except Exception as e:
         print(f"Authentication error: {e}")
         return None
-
+ 
 def login():
     """
     Handle user login
     """
     global current_user
-
+ 
     print("=== LOGIN REQUIRED ===")
     username = input("Username: ").strip()
     password = input("Password: ").strip()
@@ -235,7 +148,7 @@ def login():
     else:
         print("Invalid credentials. Please try again.")
         return False
-
+ 
 #def logout():
     """
     Handle user logout
@@ -244,8 +157,7 @@ def login():
     if current_user:
         print(f"Goodbye {current_user.username}!")
         current_user = None
-
-
+ 
 def logout():
     global current_user, current_session_id
     current_user = None
@@ -256,12 +168,95 @@ def check_authentication():
     Check if user is authenticated
     """
     return current_user is not None and current_user.is_authenticated
+ 
+#############################################################################
+########################  CONVERSATION LOGS ################################
+
+
+
+
+
+
+def get_conversation_context(num_exchanges=5):
+    try:
+        result = supabase.table("conversation_logs") \
+            .select("user_query, ai_response") \
+            .eq("user_id", current_user.user_id) \
+            .order("query_timestamp", desc=True) \
+            .limit(num_exchanges) \
+            .execute()
+ 
+        rows = result.data if hasattr(result, 'data') else result.get('data', [])
+        if not rows:
+            return ""
+ 
+        context = f"Last {num_exchanges} conversations from this user:\n"
+        for i, row in enumerate(reversed(rows), 1):
+            context += f"\nExchange {i}:\nUser: {row['user_query']}\nAssistant: {row['ai_response']}\n"
+        return context
+ 
+    except Exception as e:
+        print("DEBUG: Failed to fetch context from Supabase:", e)
+        return ""
+ 
+def is_follow_up_question(user_query):
+    follow_up_signals = [
+        'what about', 'and what', 'also show', 'more details', 'can you also',
+        'tell me more', 'how about', 'compare', 'difference between'
+    ]
+    return any(signal in user_query.lower() for signal in follow_up_signals)
+ 
+def enhance_query_with_context(user_query):
+    if not is_follow_up_question(user_query):
+        return user_query
+ 
+    try:
+        result = supabase.table("conversation_logs") \
+            .select("user_query, ai_response") \
+            .eq("user_id", current_user.user_id) \
+            .order("query_timestamp", desc=True) \
+            .limit(1) \
+            .execute()
+ 
+        rows = result.data if hasattr(result, 'data') else result.get('data', [])
+        if not rows:
+            return user_query
+ 
+        last = rows[0]
+        return (
+            f"Previous context: {last['user_query']}\n"
+            f"Previous response: {last['ai_response']}\n\n"
+            f"Follow-up question: {user_query}\n\n"
+            f"Please answer the follow-up considering the previous context."
+        )
+ 
+    except Exception as e:
+        print("DEBUG: Failed to enhance query with context:", e)
+        return user_query
+ 
+def save_to_supabase(user_query, response):
+    try:
+        log_data = {
+            'user_id': current_user.user_id,
+            'dealer_id': current_user.dealer_id,
+            'user_query': user_query,
+            'ai_response': response,
+            'session_id': current_session_id,
+            'query_timestamp': datetime.now().isoformat(),
+            'query_type': "followup" if is_follow_up_question(user_query) else "initial",
+            'metadata': {}  # Add any relevant metadata if needed
+        }
+        result = supabase.table("conversation_logs").insert(log_data).execute()
+        print(f"DEBUG: Supabase log result: {result}")
+    except Exception as e:
+        print(f"Error saving to Supabase: {e}")
+ 
 #############################################################################
 ########################  FUZZY  ################################
 DEALER_CACHE = {}
 PRODUCT_CACHE = {}
 WAREHOUSE_CACHE = {}
-
+ 
 def normalize_text(text):
     """Normalize text for better matching"""
     if not isinstance(text, str):
@@ -269,7 +264,7 @@ def normalize_text(text):
     text = re.sub(r'[^\w\s]', '', text.lower())
     text = re.sub(r'\s+', ' ', text).strip()
     return text
-
+ 
 def fuzzy_match_string(query_string, candidates, threshold=70):
     """
     Find the best fuzzy match for a string from a list of candidates
@@ -290,7 +285,7 @@ def fuzzy_match_string(query_string, candidates, threshold=70):
         pass
     
     return None, 0
-
+ 
 def get_database_entities():
     """Cache database entities for fuzzy matching"""
     global DEALER_CACHE, PRODUCT_CACHE, WAREHOUSE_CACHE
@@ -327,7 +322,7 @@ def get_database_entities():
         
     except Exception as e:
         print(f"DEBUG: Error caching entities: {e}")
-
+ 
 def fuzzy_correct_entities(text):
     """
     Find and correct entity names in the text using fuzzy matching
@@ -369,43 +364,183 @@ def fuzzy_correct_entities(text):
         print(f"DEBUG: Fuzzy corrections made: {corrections_made}")
     
     return corrected_text
-
-# def add_role_based_filters(base_query, user_session):
-#     """
-#     Add role-based access control filters to SQL queries
-#     """
-#     if not user_session or user_session.can_access_all_data():
+########################################################################################
+#####################################  SQLL  ################################################
+ 
+# def add_role_based_filters(base_query: str, user_session) -> str:
+#     if not user_session or user_session.can_access_all_data() or user_session.is_sales_rep():
 #         return base_query
-    
-#     if not user_session.is_dealer():
-#         return base_query
-    
-#     # For dealers, add filters based on query type
-#     query_lower = base_query.lower()
+ 
 #     dealer_id = user_session.dealer_id
-    
-#     # If query involves sales table
-#     if 'from sales' in query_lower or 'join sales' in query_lower:
+#     query_lower = base_query.lower()
+ 
+#     # Apply warehouse restriction for inventory queries (only for dealers)
+#     if 'from inventory' in query_lower or 'join inventory' in query_lower:
 #         if 'where' in query_lower:
-#             # Add dealer filter to existing WHERE clause
-#             base_query = base_query.replace(' WHERE ', f' WHERE s.dealer_id = {dealer_id} AND ')
-#             base_query = base_query.replace(' where ', f' WHERE s.dealer_id = {dealer_id} AND ')
+#             return base_query.replace(
+#                 ' where ',
+#                 f" WHERE i.warehouse_id IN (SELECT warehouse_id FROM dealer WHERE dealer_id = {dealer_id}) AND "
+#             )
 #         else:
-#             # Add WHERE clause with dealer filter
-#             base_query = base_query.rstrip(';') + f' WHERE s.dealer_id = {dealer_id};'
-    
-#     # If query involves claims table
-#     elif 'from claim' in query_lower or 'join claim' in query_lower:
-#         if 'where' in query_lower:
-#             base_query = base_query.replace(' WHERE ', f' WHERE c.dealer_id = {dealer_id} AND ')
-#             base_query = base_query.replace(' where ', f' WHERE c.dealer_id = {dealer_id} AND ')
-#         else:
-#             base_query = base_query.rstrip(';') + f' WHERE c.dealer_id = {dealer_id};'
-    
-#     # Inventory queries are allowed for all dealers (they can see all stock)
-    
+#             return base_query.rstrip(';') + f" WHERE i.warehouse_id IN (SELECT warehouse_id FROM dealer WHERE dealer_id = {dealer_id});"
+ 
 #     return base_query
 
+
+
+def get_llm_sql(user_query):
+    """Generate SQL with correct role-based access control logic + recent history"""
+    corrected_query = fuzzy_correct_entities(user_query)
+ 
+    # Fetch last 3 user logs for context
+    try:
+        result = supabase.table("conversation_logs") \
+            .select("user_query, ai_response") \
+            .eq("user_id", current_user.user_id) \
+            .order("query_timestamp", desc=True) \
+            .limit(3) \
+            .execute()
+ 
+        rows = result.data if hasattr(result, 'data') else result.get('data', [])
+        history_context = ""
+        for i, row in enumerate(reversed(rows), 1):
+            history_context += f"\nExchange {i}:\nUser: {row['user_query']}\nAssistant: {row['ai_response']}\n"
+    except Exception as e:
+        print("DEBUG: Failed to fetch history logs for SQL context:", e)
+        history_context = ""
+ 
+    # Inject role-specific access control info
+    role_info = ""
+    if current_user:
+        if current_user.is_dealer():
+            role_info = f"""
+IMPORTANT ROLE-BASED ACCESS CONTROL:
+- The current user is a DEALER with dealer_id = {current_user.dealer_id}
+- Dealers can access:
+  * All inventory/stock data (no dealer filter needed)
+  * ONLY their own sales data → Filter sales queries with: AND s.dealer_id = {current_user.dealer_id}
+  * ONLY their own claims data → Filter claims queries with: AND c.dealer_id = {current_user.dealer_id}
+- NEVER allow access to other dealer_id data.
+"""
+        elif current_user.is_sales_rep():
+            role_info = """
+IMPORTANT ROLE-BASED ACCESS CONTROL:
+- The current user is a SALES REPRESENTATIVE
+- Sales reps can access:
+  * All inventory data (no dealer filter)
+  * Their own orders (orders table)
+- DO NOT restrict queries to a specific dealer unless explicitly mentioned by user.
+"""
+        elif current_user.is_admin():
+            role_info = """
+IMPORTANT ROLE-BASED ACCESS CONTROL:
+- The current user is an ADMIN
+- Admins have full unrestricted access to all data across all dealers and tables.
+"""
+ 
+    system_prompt = (
+        "You are an AI assistant for a tyre manufacturing company. "
+        "You help generate efficient SQL SELECT queries from user questions based on the following PostgreSQL schema.\n\n"
+        "Tables and their descriptions:\n"
+        "1. users(user_id, username, password, email, role, dealer_id): User login info\n"
+        "2. dealer(dealer_id, name): Tyre dealers\n"
+        "3. claim(claim_id, dealer_id, status , claim_date , resolved_date,product_id,amount , approved_amount, reason)\n"
+        "4. product(product_id, product_name, category, price, section_width, aspect_ratio, construction_type, rim_diameter_inch)\n"
+        "5. warehouse(warehouse_id, location, zone)\n"
+        "6. sales(sales_id, dealer_id, product_id, warehouse_id, quantity, cost, date)\n"
+        "7. inventory(product_id, warehouse_id, quantity)\n"
+        "8. orders(order_id, dealer_id, product_id, warehouse_id, quantity, unit_price, total_cost, order_date, status, sales_rep_id)\n\n"
+        "Key relationships:\n"
+        "- users joins dealer on dealer_id\n"
+        "- claim joins dealer on dealer_id\n"
+        "- sales joins dealer, product, and warehouse\n"
+        "- inventory joins product and warehouse\n\n"
+        + role_info +
+        "\nDO NOT create SQL queries if user asks for other dealer_id data (when user is a dealer).\n"
+        "\nRules for Generating SQL:\n"
+        "1. Use ONLY the columns and tables exactly as defined above.\n"
+        "2. For string comparisons, use ILIKE with wildcards: name ILIKE '%term%'\n"
+        "3. Use LOWER() for case-insensitive match\n"
+        "4. Try matching multiple variants (spelling/case)\n"
+        "5. Return only the columns needed to answer\n"
+        "6. Use aliases (s = sales, c = claim, etc.)\n"
+        "7. ENFORCE access control strictly\n\n"
+        "Here is the user’s recent context to help understand their intent:\n"
+        + history_context
+    )
+ 
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": corrected_query}
+    ]
+ 
+    payload = {
+        "messages": messages,
+        "temperature": 0,
+        "max_tokens": 250,
+        "top_p": 1,
+        "frequency_penalty": 0,
+        "presence_penalty": 0
+    }
+ 
+    response = requests.post(chat_endpoint, headers=chat_headers, json=payload)
+    if response.status_code == 200:
+        sql = response.json()["choices"][0]["message"]["content"].strip()
+ 
+        # Final safety pass
+        # if current_user:
+        #     sql = add_role_based_filters(sql, current_user)
+ 
+        return sql
+    else:
+        raise Exception(f"Chat API error (SQL): {response.status_code}: {response.text}")
+
+
+
+
+def clean_sql_output(raw_sql):
+    # Remove markdown code fences and leading/trailing spaces
+    cleaned = re.sub(r"```(?:sql)?", "", raw_sql, flags=re.IGNORECASE).strip()
+    return cleaned
+ 
+def try_select_sql(sql):
+    sql = sql.strip()
+    if not sql.lower().startswith("select"):
+        return None, "Only SELECT statements are allowed for safety."
+    try:
+        conn = psycopg2.connect(
+            dbname=os.getenv("dbname"),
+            user=os.getenv("user"),
+            password=os.getenv("password"),
+            host=os.getenv("host"),
+            port=os.getenv("port")
+        )
+        cur = conn.cursor()
+        cur.execute(sql)
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+        result = [dict(zip(columns, row)) for row in rows]
+        cur.close()
+        conn.close()
+        return result, None
+    except Exception as e:
+        return None, str(e)
+    
+ 
+def sql_result_to_context(sql_result):
+    if not sql_result:
+        return "No results found."
+    rows_as_strings = []
+    for row in sql_result:
+        row_str = ', '.join(f"{k}: {v}" for k, v in row.items())
+        rows_as_strings.append(row_str)
+    return "\n---\n".join(rows_as_strings)
+ 
+    
+ 
+############################################################################################
+###################### RAG ############################################################
+ 
 def rewrite_query_for_rag(user_query):
     """
     Enhanced query rewriting with fuzzy correction
@@ -455,13 +590,13 @@ def rewrite_query_for_rag(user_query):
     except Exception as e:
         print(f"Query rewriting error: {e}")
         return corrected_query
-
+ 
 def preprocess_query(query):
     text = query.lower()
     text = re.sub(r'[^\w\s]', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
     return text
-
+ 
 def get_embedding(text):
     payload = {"input": text}
     response = requests.post(embedding_endpoint, headers=embedding_headers, json=payload)
@@ -469,113 +604,33 @@ def get_embedding(text):
         return response.json()["data"][0]["embedding"]
     else:
         raise Exception(f"Embedding API error {response.status_code}: {response.text}")
-
+ 
 def cosine_similarity(vec1, vec2):
     vec1 = np.array(vec1)
     vec2 = np.array(vec2)
     if np.linalg.norm(vec1) == 0 or np.linalg.norm(vec2) == 0:
         return 0.0
     return float(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
-
-def rows_to_context(rows):
-    context = ""
-    for idx, row in enumerate(rows, 1):
-        context += f"\nRow {idx}:\n"
-        for key, value in row.items():
-            if key != "embedding":
-                context += f"{key}: {value}\n"
-    return context.strip()
-
-def sql_result_to_context(sql_result):
-    if not sql_result:
-        return "No results found."
-    rows_as_strings = []
-    for row in sql_result:
-        row_str = ', '.join(f"{k}: {v}" for k, v in row.items())
-        rows_as_strings.append(row_str)
-    return "\n---\n".join(rows_as_strings)
-
-def get_llm_sql(user_query, user_session):
-    """Enhanced SQL generation with role-based access control"""
+ 
+def extract_metadata_with_llm(user_query):
+    """
+    Enhanced metadata extraction with role-based context
+    """
     corrected_query = fuzzy_correct_entities(user_query)
-     # Fetch last 3 user logs for context
-    try:
-        result = supabase.table("conversation_logs") \
-            .select("user_query, ai_response") \
-            .eq("user_id", current_user.user_id) \
-            .order("query_timestamp", desc=True) \
-            .limit(3) \
-            .execute()
- 
-        rows = result.data if hasattr(result, 'data') else result.get('data', [])
-        history_context = ""
-        for i, row in enumerate(reversed(rows), 1):
-            history_context += f"\nExchange {i}:\nUser: {row['user_query']}\nAssistant: {row['ai_response']}\n"
-    except Exception as e:
-        print("DEBUG: Failed to fetch history logs for SQL context:", e)
-        history_context = ""
- 
-    # Enhanced system prompt with role-based considerations
-    role_info = ""
-    if current_user:
-        if current_user.is_dealer():
-            role_info = f"""
-        
-IMPORTANT ROLE-BASED ACCESS CONTROL:
-- The current user is a DEALER with dealer_id = {current_user.dealer_id}
-- Dealers can access:
-  * All inventory/stock data (no dealer filter needed)
-  * ONLY their own sales data → Filter sales queries with: AND s.dealer_id = {current_user.dealer_id}
-  * ONLY their own claims data → Filter claims queries with: AND c.dealer_id = {current_user.dealer_id}
-- NEVER allow access to other dealer_id data.
-"""
-    elif current_user.is_sales_rep():
-            role_info = """
-IMPORTANT ROLE-BASED ACCESS CONTROL:
-- The current user is a SALES REPRESENTATIVE
-- Sales reps can access:
-  * All inventory data (no dealer filter)
-  * Their own orders (orders table)
-- DO NOT restrict queries to a specific dealer unless explicitly mentioned by user.
-"""
-    elif current_user.is_admin():
-            role_info = """
-IMPORTANT ROLE-BASED ACCESS CONTROL:
-- The current user is an ADMIN
-- Admins have full unrestricted access to all data across all dealers and tables.
-"""
-  
+    
+    # Add current user context to metadata extraction
+    user_context = ""
+    if current_user and current_user.is_dealer():
+        user_context = f" The current user is dealer {current_user.dealer_name} with dealer_id {current_user.dealer_id}."
+    
     system_prompt = (
-        "You are an AI assistant for a tyre manufacturing company. "
-        "You help generate efficient SQL SELECT queries from user questions based on the following PostgreSQL schema.\n\n"
-        "Tables and their descriptions:\n"
-        "1. users(user_id, username, password, email, role, dealer_id): Stores user login and profile information, including their role and associated dealer.\n"
-        "2. dealer(dealer_id, name): Stores information about tyre dealers.\n"
-        "3. claim(claim_id, dealer_id, status): Stores warranty or service claims made by dealers.\n"
-        "4. product(product_id, product_name, category, price, section_width, aspect_ratio, construction_type, rim_diameter_inch): Stores product (tyre) details, including size and pricing.\n"
-        "5. warehouse(warehouse_id, location, zone): Stores warehouse locations and zones.\n"
-        "6. sales(sales_id, dealer_id, product_id, warehouse_id, quantity, cost, date): Stores sales transactions, including which dealer sold which product from which warehouse, quantity, cost, and date.\n"
-        "7. inventory(product_id, warehouse_id, quantity): Stores current stock levels of each product in each warehouse.\n\n"
-        "8. orders(order_id, dealer_id, product_id, warehouse_id, quantity, unit_price, total_cost, order_date, status, sales_rep_id): Stores order information placed by sales representatives.\n"
-        "Key relationships:\n"
-        "- users joins dealer on dealer_id\n"
-        "- claim joins dealer on dealer_id\n"
-        "- sales joins dealer, product, and warehouse via dealer_id, product_id, and warehouse_id\n"
-        "- inventory joins product and warehouse via product_id and warehouse_id\n\n"
-      + role_info +
-        "\nDO NOT create SQL queries if user asks for other dealer_id data (when user is a dealer).\n"
-        "\nRules for Generating SQL:\n"
-        "1. Use ONLY the columns and tables exactly as defined above.\n"
-        "2. For string comparisons, use ILIKE with wildcards: name ILIKE '%term%'\n"
-        "3. Use LOWER() for case-insensitive match\n"
-        "4. Try matching multiple variants (spelling/case)\n"
-        "5. Return only the columns needed to answer\n"
-        "6. Use aliases (s = sales, c = claim, etc.)\n"
-        "7. ENFORCE access control strictly\n\n"
-        "Here is the user’s recent context to help understand their intent:\n"
-        + history_context
+        "You are an assistant that extracts structured metadata from user queries about tyres, warehouses, dealers, claims, sales, and inventory. "
+        "Given a user query, return a JSON object with as many of these fields as possible if present: "
+        " user_id, username, email, role, dealer_id, dealer_name,claim_id, status, claim_date, product_id(number ,symbol , alphabets eg. 100/35R24 50P), amount, approved_amount, resolved_date, reason,sales_id, date, product_name(only text eg. SpeedoCruze Pro), warehouse_id(number),zone,quantity(number), cost, product_price, category, location"
+        "Be flexible with variations and partial matches in names and locations. "
+        + user_context +
+        " If a field is not present, omit it. Only return a valid JSON object, no explanation or extra text."
     )
-
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": corrected_query}
@@ -583,51 +638,23 @@ IMPORTANT ROLE-BASED ACCESS CONTROL:
     payload = {
         "messages": messages,
         "temperature": 0,
-        "max_tokens": 250,
+        "max_tokens": 200,
         "top_p": 1,
         "frequency_penalty": 0,
         "presence_penalty": 0
     }
     response = requests.post(chat_endpoint, headers=chat_headers, json=payload)
     if response.status_code == 200:
-        sql = response.json()["choices"][0]["message"]["content"].strip()
-        
-        # Additional safety check - apply role-based filters
-        # if user_session:
-        #     sql = add_role_based_filters(sql, user_session)
-        
-        return sql
-    else:
-        raise Exception(f"Chat API error (SQL): {response.status_code}: {response.text}")
-    
-def clean_sql_output(raw_sql):
-    # Remove markdown code fences and leading/trailing spaces
-    cleaned = re.sub(r"```(?:sql)?", "", raw_sql, flags=re.IGNORECASE).strip()
-    return cleaned
-
-def try_select_sql(sql):
-    sql = sql.strip()
-    if not sql.lower().startswith("select"):
-        return None, "Only SELECT statements are allowed for safety."
-    try:
-        conn = psycopg2.connect(
-            dbname=os.getenv("dbname"),
-            user=os.getenv("user"),
-            password=os.getenv("password"),
-            host=os.getenv("host"),
-            port=os.getenv("port")
-        )
-        cur = conn.cursor()
-        cur.execute(sql)
-        columns = [desc[0] for desc in cur.description]
-        rows = cur.fetchall()
-        result = [dict(zip(columns, row)) for row in rows]
-        cur.close()
-        conn.close()
-        return result, None
-    except Exception as e:
-        return None, str(e)
-
+        content = response.json()["choices"][0]["message"]["content"]
+        try:
+            metadata = json.loads(content)
+            if isinstance(metadata, dict):
+                return metadata
+        except Exception as e:
+            print("DEBUG: Metadata JSON decode error:", e)
+            return None
+    return None
+ 
 def enhanced_metadata_filter_matching(metadata_filter, row_metadata):
     """
     Enhanced metadata matching with fuzzy logic and role-based filtering
@@ -666,7 +693,7 @@ def enhanced_metadata_filter_matching(metadata_filter, row_metadata):
             match_score += 0.7
     
     return match_score / total_filters if total_filters > 0 else 0
-
+ 
 def vector_store_similarity_search(query_embedding, top_k=10, metadata_filter=None, similarity_threshold=0.1):
     """
     Enhanced vector similarity search with role-based access control
@@ -716,7 +743,16 @@ def vector_store_similarity_search(query_embedding, top_k=10, metadata_filter=No
         print(f"DEBUG: Top similarity scores: {[round(sim, 3) for sim, _ in similarities[:5]]}")
     
     return results
-
+ 
+# def rows_to_context(rows):
+#     context = ""
+#     for idx, row in enumerate(rows, 1):
+#         context += f"\nRow {idx}:\n"
+#         for key, value in row.items():
+#             if key != "embedding":
+#                 context += f"{key}: {value}\n"
+#     return context.strip()
+ 
 def vector_rows_to_context(rows):
     context = ""
     for idx, row in enumerate(rows, 1):
@@ -725,6 +761,7 @@ def vector_rows_to_context(rows):
             if key != "embedding":
                 context += f"{key}: {value}\n"
     return context.strip()
+ 
 ###########################################################################################
 ####################### FINAL RESPONSE #####################################################
  
@@ -821,51 +858,7 @@ User Query:
     except Exception as e:
         print("DEBUG: Chat API failed:", e)
         return "Sorry, I can't assist with that."
-
-
-def extract_metadata_with_llm(user_query):
-    """
-    Enhanced metadata extraction with role-based context
-    """
-    corrected_query = fuzzy_correct_entities(user_query)
-    
-    # Add current user context to metadata extraction
-    user_context = ""
-    if current_user and current_user.is_dealer():
-        user_context = f" The current user is dealer {current_user.dealer_name} with dealer_id {current_user.dealer_id}."
-    
-    system_prompt = (
-        "You are an assistant that extracts structured metadata from user queries about tyres, warehouses, dealers, claims, sales, and inventory. "
-        "Given a user query, return a JSON object with as many of these fields as possible if present: "
-        " user_id, username, email, role, dealer_id, dealer_name,claim_id, status, claim_date, product_id(number ,symbol , alphabets eg. 100/35R24 50P), amount, approved_amount, resolved_date, reason,sales_id, date, product_name(only text eg. SpeedoCruze Pro), warehouse_id(number),zone,quantity(number), cost, product_price, category, location"
-        "Be flexible with variations and partial matches in names and locations. "
-        + user_context +
-        " If a field is not present, omit it. Only return a valid JSON object, no explanation or extra text."
-    )
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": corrected_query}
-    ]
-    payload = {
-        "messages": messages,
-        "temperature": 0,
-        "max_tokens": 200,
-        "top_p": 1,
-        "frequency_penalty": 0,
-        "presence_penalty": 0
-    }
-    response = requests.post(chat_endpoint, headers=chat_headers, json=payload)
-    if response.status_code == 200:
-        content = response.json()["choices"][0]["message"]["content"]
-        try:
-            metadata = json.loads(content)
-            if isinstance(metadata, dict):
-                return metadata
-        except Exception as e:
-            print("DEBUG: Metadata JSON decode error:", e)
-            return None
-    return None
-
+ 
 ###################################################################################################
 ##############################  ORDERS ############################################################
  
@@ -873,7 +866,7 @@ def place_order(dealer_id, product_id, quantity, warehouse_id=None):
     """
     Place an order - only for sales representatives.
     Deducts stock from warehouse and records the order.
-    """ 
+    """
     if not current_user or not current_user.is_sales_rep():
         return {"success": False, "message": "Only sales representatives can place orders."}
     
@@ -886,7 +879,7 @@ def place_order(dealer_id, product_id, quantity, warehouse_id=None):
             port=os.getenv("port")
         )
         cur = conn.cursor()
-
+ 
         # 1. Validate product
         cur.execute("SELECT product_name, price FROM product WHERE product_id = %s", (product_id,))
         product_row = cur.fetchone()
@@ -894,7 +887,7 @@ def place_order(dealer_id, product_id, quantity, warehouse_id=None):
             return {"success": False, "message": f"Product {product_id} not found."}
         
         product_name, unit_price = product_row
-
+ 
         # 2. Validate dealer
         cur.execute("SELECT name FROM dealer WHERE dealer_id = %s", (dealer_id,))
         dealer_row = cur.fetchone()
@@ -902,7 +895,7 @@ def place_order(dealer_id, product_id, quantity, warehouse_id=None):
             return {"success": False, "message": f"Dealer ID {dealer_id} not found."}
         
         dealer_name = dealer_row[0]
-
+ 
         # 3. Check inventory
         if warehouse_id:
             cur.execute("""
@@ -924,14 +917,14 @@ def place_order(dealer_id, product_id, quantity, warehouse_id=None):
         stock_row = cur.fetchone()
         if not stock_row:
             return {"success": False, "message": f"Insufficient stock for product {product_id}. Required: {quantity}"}
-
+ 
         selected_warehouse_id, warehouse_location, available_quantity = stock_row
-
+ 
         total_cost = unit_price * quantity
-
+ 
         # 4. Start transaction
         cur.execute("BEGIN")
-
+ 
         # 5. Insert order into orders table
         cur.execute("""
             INSERT INTO orders (
@@ -945,17 +938,17 @@ def place_order(dealer_id, product_id, quantity, warehouse_id=None):
             quantity, unit_price, total_cost, current_user.user_id
         ))
         order_id = cur.fetchone()[0]
-
+ 
         # 6. Deduct stock
         cur.execute("""
             UPDATE inventory
             SET quantity = quantity - %s
             WHERE product_id = %s AND warehouse_id = %s
         """, (quantity, product_id, selected_warehouse_id))
-
+ 
         # 7. Commit
         conn.commit()
-
+ 
         return {
             "success": True,
             "message": "Order placed successfully.",
@@ -970,19 +963,18 @@ def place_order(dealer_id, product_id, quantity, warehouse_id=None):
                 "remaining_stock": available_quantity - quantity
             }
         }
-
+ 
     except Exception as e:
         if conn:
             conn.rollback()
         return {"success": False, "message": f"Transaction failed: {str(e)}"}
-
+ 
     finally:
         if cur:
             cur.close()
         if conn:
             conn.close()
-
-
+ 
 def check_stock_availability(product_id, required_quantity=1):
     """
     Check stock availability across all warehouses
@@ -1040,86 +1032,7 @@ def check_stock_availability(product_id, required_quantity=1):
     except Exception as e:
         return {"available": False, "message": f"Error checking stock: {str(e)}"}
 
-def get_order_history(limit=10):
-    """
-    Get order history - dealers see only their orders, sales reps see all
-    """
-    try:
-        conn = psycopg2.connect(
-            dbname=os.getenv("dbname"),
-            user=os.getenv("user"),
-            password=os.getenv("password"),
-            host=os.getenv("host"),
-            port=os.getenv("port")
-        )
-        cur = conn.cursor()
-        
-        if current_user.is_dealer():
-            # Dealers see only their orders
-            cur.execute("""
-                SELECT o.order_id, o.dealer_id, d.name as dealer_name, 
-                       o.product_id, p.product_name, o.quantity, 
-                       o.unit_price, o.total_cost, o.order_date, o.status,
-                       w.location as warehouse_location
-                FROM orders o
-                JOIN dealer d ON o.dealer_id = d.dealer_id
-                JOIN product p ON o.product_id = p.product_id
-                JOIN warehouse w ON o.warehouse_id = w.warehouse_id
-                WHERE o.dealer_id = %s
-                ORDER BY o.order_date DESC
-                LIMIT %s
-            """, (current_user.dealer_id, limit))
-        else:
-            # Sales reps and admins see all orders
-            cur.execute("""
-                SELECT o.order_id, o.dealer_id, d.name as dealer_name, 
-                       o.product_id, p.product_name, o.quantity, 
-                       o.unit_price, o.total_cost, o.order_date, o.status,
-                       w.location as warehouse_location, u.username as sales_rep
-                FROM orders o
-                JOIN dealer d ON o.dealer_id = d.dealer_id
-                JOIN product p ON o.product_id = p.product_id
-                JOIN warehouse w ON o.warehouse_id = w.warehouse_id
-                JOIN users u ON o.sales_rep_id = u.user_id
-                ORDER BY o.order_date DESC
-                LIMIT %s
-            """, (limit,))
-        
-        results = cur.fetchall()
-        cur.close()
-        conn.close()
-        
-        return results
-        
-    except Exception as e:
-        print(f"Error getting order history: {e}")
-        return []
 
-def detect_order_intent(user_query):
-    """
-    Detect if user wants to place an order or check stock
-    """
-    order_keywords = [
-        'place order', 'order', 'buy', 'purchase', 'need', 'want to order',
-        'book', 'reserve', 'get', 'need to buy'
-    ]
-    
-    stock_keywords = [
-        'stock', 'availability', 'available', 'inventory', 'in stock',
-        'check stock', 'how much', 'quantity available'
-    ]
-    
-    query_lower = user_query.lower()
-    
-    for keyword in order_keywords:
-        if keyword in query_lower:
-            return 'order'
-    
-    for keyword in stock_keywords:
-        if keyword in query_lower:
-            return 'stock_check'
-    
-    return None
 
 def extract_order_details(user_query):
     """
@@ -1190,7 +1103,7 @@ Examples:
         print(f"Error extracting order details: {e}")
     
     return {"intent": "unknown"}
-
+ 
 def resolve_dealer_id(dealer_name):
     try:
         conn = psycopg2.connect(
@@ -1214,7 +1127,7 @@ def resolve_dealer_id(dealer_name):
     finally:
         cur.close()
         conn.close()
-
+ 
 def resolve_product_id(product_name):
     try:
         conn = psycopg2.connect(
@@ -1241,82 +1154,11 @@ def resolve_product_id(product_name):
 
 
 
-# def handle_order_operations(user_query):
-#     """
-#     Handle order-related operations
-#     """
-#     intent = detect_order_intent(user_query)
-    
-#     if intent == 'order':
-#         if not current_user.is_sales_rep():
-#             return "Only sales representatives can place orders."
-        
-#         order_details = extract_order_details(user_query)
-        
-#         if not order_details.get('dealer_id'):
-#             return "Please specify the dealer ID for the order."
-        
-#         if not order_details.get('product_id') and not order_details.get('product_name'):
-#             return "Please specify the product ID or product name."
-        
-#         if not order_details.get('quantity'):
-#             return "Please specify the quantity to order."
-        
-#         # If product_name provided instead of product_id, find the product_id
-#         if order_details.get('product_name') and not order_details.get('product_id'):
-#             # Add logic to find product_id from product_name
-#             pass
-        
-#         result = place_order(
-#             dealer_id=order_details['dealer_id'],
-#             product_id=order_details['product_id'],
-#             quantity=order_details['quantity'],
-#             warehouse_id=order_details.get('warehouse_id')
-#         )
-        
-#         if result['success']:
-#             details = result['details']
-#             return f"""Order placed successfully! 
-#             Order ID: {details['order_id']}
-#             Dealer: {details['dealer']}
-#             Product: {details['product']}
-#             Quantity: {details['quantity']}
-#             Warehouse: {details['warehouse']}       
-#             Unit Price: Rs.{details['unit_price']}
-#             Total Cost: Rs.{details['total_cost']}
-#             Remaining Stock: {details['remaining_stock']} units"""
-#         else:
-#             return f"Order failed: {result['message']}"
-    
-#     elif intent == 'stock_check':
-#         order_details = extract_order_details(user_query)
-#         product_id = order_details.get('product_id')
-#         quantity = order_details.get('quantity', 1)
-        
-#         if not product_id:
-#             return "Please specify the product ID to check stock."
-        
-#         stock_info = check_stock_availability(product_id, quantity)
-        
-#         if stock_info['available']:
-#             warehouses_info = "\n".join([
-#                 f"- {w['location']}: {w['quantity']} units {'✓' if w['sufficient'] else '✗'}"
-#                 for w in stock_info['warehouses']
-#             ])
-#             return f"""Stock Information for {stock_info['product_name']} ({product_id}):
-#             Total Stock: {stock_info['total_stock']} units
-#             Required: {quantity} units
-#             Status: {'✓ Available' if stock_info['available'] else '✗ Insufficient'}
 
-# Warehouse Details:
-# {warehouses_info}
 
-# Price: ${stock_info['price']} per unit"""
-#         else:
-#             return stock_info['message']
-    
-#     return None
-
+#####################################################################################################################
+####################### MAIN ########################################################################
+ 
 def main():
     print("🔐 Enhanced RAG System with Role-Based Access Control")
     print("Features: Fuzzy Matching + Dealer Access Control + Supabase Logging")
@@ -1449,109 +1291,21 @@ def main():
             print("DEBUG Exception:", e)
  
         print("\n" + "-" * 50 + "\n")
-        #old running code --------------------------------------------------------------------------------------------
-# def process_user_query(user_query, user_session):
-#     # This is a wrapper for your main RAG logic
-#     try:
-#         if user_session is None:
-#             print("[ERROR] No user_session set in process_user_query")
-#             return "User not authenticated."
-#         print(f"[DEBUG] process_user_query: current_user={user_session.username}, role={user_session.role}, dealer_id={user_session.dealer_id}")
-#         sql = get_llm_sql(user_query, user_session)
-#         sql = clean_sql_output(sql)
-#         sql_context = "No results found."
-#         if sql.strip().upper() != "NO_SQL" and sql.strip().lower().startswith("select"):
-#             sql_result, sql_error = try_select_sql(sql)
-#             if sql_result:
-#                 sql_context = sql_result_to_context(sql_result)
-#         rewritten_query = rewrite_query_for_rag(user_query)
-#         query_embedding = get_embedding(preprocess_query(rewritten_query))
-#         metadata_filter = extract_metadata_with_llm(user_query)
-#         vector_rows = vector_store_similarity_search(
-#             query_embedding,
-#             top_k=10,
-#             metadata_filter=metadata_filter,
-#             similarity_threshold=0.08
-#         )
-#         rag_context = vector_rows_to_context(vector_rows) if vector_rows else "No relevant vector context found."
-#         answer = get_llm_final_response(sql_context, rag_context, user_query, user_session)
-#         return answer
-#     except Exception as e:
-#         print("[ERROR] process_user_query failed:", e)
-#         return "Sorry, I can't assist with that."
-    
+
 def process_user_query(user_query, user_session):
-    """
-    Main unified query handler:
-    - Handles order placement for sales reps
-    - Falls back to SQL + RAG pipeline
-    """
+    # This is a wrapper for your main RAG logic
     try:
         if user_session is None:
             print("[ERROR] No user_session set in process_user_query")
             return "User not authenticated."
-
-        global current_user
-        current_user = user_session
         print(f"[DEBUG] process_user_query: current_user={user_session.username}, role={user_session.role}, dealer_id={user_session.dealer_id}")
-
-        # 1️⃣ Check for sales rep order intent
-        if current_user.is_sales_rep():
-            extracted = extract_order_details(user_query)
-            intent = extracted.get("intent", "unknown")
-
-            if intent == "order":
-                product_id = extracted.get("product_id")
-                dealer_id = extracted.get("dealer_id")
-                quantity = extracted.get("quantity")
-                warehouse_id = extracted.get("warehouse_id")
-
-                # If dealer_id is missing, try resolving from dealer_name
-                if not dealer_id and "dealer_name" in extracted:
-                    dealer_id = resolve_dealer_id(extracted["dealer_name"])
-
-                # If product_id is missing, try resolving from product_name
-                if not product_id and "product_name" in extracted:
-                    product_id = resolve_product_id(extracted["product_name"])
-
-                if not product_id or not quantity or not dealer_id:
-                    error_msg = "❌ Missing order details. Please specify dealer, product, and quantity."
-                    save_to_supabase(user_query, error_msg)
-                    return error_msg
-
-                result = place_order(dealer_id, product_id, quantity, warehouse_id)
-
-                if result["success"]:
-                    details = result["details"]
-                    response_text = (
-                        "✅ Order placed successfully:\n"
-                        f"- Order ID: {details['order_id']}\n"
-                        f"- Dealer: {details['dealer']}\n"
-                        f"- Product: {details['product']}\n"
-                        f"- Quantity: {details['quantity']}\n"
-                        f"- Warehouse: {details['warehouse']}\n"
-                        f"- Unit Price: ₹{details['unit_price']}\n"
-                        f"- Total Cost: ₹{details['total_cost']}\n"
-                        f"- Remaining Stock: {details['remaining_stock']} units"
-                    )
-
-                    save_to_supabase(user_query, response_text)
-                    return response_text
-                else:
-                    error_msg = f"❌ Order failed: {result['message']}"
-                    save_to_supabase(user_query, error_msg)
-                    return error_msg
-
-        # 2️⃣ Continue with SQL + RAG pipeline for all users
         sql = get_llm_sql(user_query, user_session)
         sql = clean_sql_output(sql)
         sql_context = "No results found."
-
         if sql.strip().upper() != "NO_SQL" and sql.strip().lower().startswith("select"):
             sql_result, sql_error = try_select_sql(sql)
             if sql_result:
                 sql_context = sql_result_to_context(sql_result)
-
         rewritten_query = rewrite_query_for_rag(user_query)
         query_embedding = get_embedding(preprocess_query(rewritten_query))
         metadata_filter = extract_metadata_with_llm(user_query)
@@ -1562,18 +1316,14 @@ def process_user_query(user_query, user_session):
             similarity_threshold=0.08
         )
         rag_context = vector_rows_to_context(vector_rows) if vector_rows else "No relevant vector context found."
-        answer = get_llm_final_response(sql_context, rag_context, user_query)
-
-        # ✅ Save response from SQL+RAG to conversation_logs
-        save_to_supabase(user_query, answer)
-
+        answer = get_llm_final_response(sql_context, rag_context, user_query, user_session)
         return answer
-
     except Exception as e:
         print("[ERROR] process_user_query failed:", e)
         return "Sorry, I can't assist with that."
 
 if __name__ == "__main__":
     main()
-
-
+ 
+ 
+    
