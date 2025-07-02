@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from supabase_client import supabase  # ✅ import your Supabase client
+#from supabase_client import supabase  # ✅ import your Supabase client
 from rag import authenticate_user, current_user, process_user_query  # Import your RAG logic
 from rag import UserSession 
 app = FastAPI()
