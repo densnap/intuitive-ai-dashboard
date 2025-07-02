@@ -5,7 +5,18 @@ from supabase_client import supabase  # ✅ import your Supabase client
 from rag import authenticate_user, current_user, process_user_query  # Import your RAG logic
 from rag import UserSession 
 app = FastAPI()
+from supabase import create_client
+from dotenv import load_dotenv
+import os
 
+# Load .env variables
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+print("✅ Supabase client created successfully!")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
