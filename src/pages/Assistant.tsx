@@ -135,7 +135,7 @@ const initials = (firstName[0] || "").toUpperCase() + (lastName[0] || "").toUppe
    try {
     const username = localStorage.getItem("username");
     // Send question to backend
-    const response = await fetch("http://127.0.0.1:9001/api/query", {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, query: userMessage.content }),
