@@ -16,7 +16,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Utility to get user session
+# ✅ Utility to get user session by username
+
 def get_user_session_by_username(username: str):
     normalized_username = username.strip().lower().replace('.', '')
     result = supabase.table("users").select("*").execute()
@@ -80,7 +81,7 @@ async def query(request: Request):
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "message": str(e)})
 
-# ✅ Twilio WhatsApp Webhook
+# ✅ Twilio WhatsApp Webhook (Deepak Mehta authenticated by default)
 @app.post("/whatsapp", response_class=PlainTextResponse)
 async def whatsapp_webhook(
     Body: str = Form(...),
@@ -88,32 +89,33 @@ async def whatsapp_webhook(
 ):
     print(f"[WHATSAPP] Received message from {From}: {Body}")
 
-    # Optional: Map From (phone) to username
-    # TODO: Replace with actual phone-to-username mapping or Supabase lookup
-    phone_map = {
-        "whatsapp:+14155238886": "deepak.mehta",  # Sandbox number → your username
-        # Add other numbers if needed
-    }
-    username = phone_map.get(From)
-
-    if not username:
-        response = MessagingResponse()
-        response.message("❌ Your number is not linked to any user account.")
-        return str(response)
-
-    user_session = get_user_session_by_username(username)
-    if not user_session:
-        response = MessagingResponse()
-        response.message("❌ Could not find a valid user session.")
-        return str(response)
-
-    global current_user
-    current_user = user_session
-
+    # ✅ Auto-authenticate hardcoded user deepak.mehta
     try:
+        result = supabase.table("users").select("*") \
+            .eq("username", "deepak.mehta") \
+            .eq("password", "$2b$12$QuuT0N.p3NBXSCFFdRkwAeOgjE5/4taqMEr9XqKHIhVgz58X.R.8W") \
+            .execute()
+
+        if not result.data:
+            response = MessagingResponse()
+            response.message("❌ Default user authentication failed.")
+            return str(response)
+
+        user = result.data[0]
+        user_session = UserSession(
+            user_id=user["user_id"],
+            username=user["username"],
+            role=user["role"],
+            dealer_id=user.get("dealer_id")
+        )
+
+        global current_user
+        current_user = user_session
+
         answer = process_user_query(Body, user_session)
+
     except Exception as e:
-        print(f"[ERROR] while processing: {e}")
+        print(f"[ERROR] while processing WhatsApp message: {e}")
         answer = "⚠️ An error occurred while processing your request."
 
     response = MessagingResponse()
