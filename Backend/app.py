@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
-from supabase_client import supabase
-from rag import authenticate_user, current_user, process_user_query, UserSession
+from Backend.supabase_client import supabase
+from Backend.rag import authenticate_user, current_user, process_user_query, UserSession
 from twilio.twiml.messaging_response import MessagingResponse
 
 app = FastAPI()
